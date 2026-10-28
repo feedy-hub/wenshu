@@ -1,0 +1,23 @@
+\documentclass[11pt,twocolumn]{article}
+\usepackage{amsmath,amssymb}
+\title{Formula Display Verification}
+\author{Local Sample}
+\date{}
+\begin{document}
+\maketitle
+\section{Inline mathematics}
+We represent each input by $x_i\in\mathbb{R}^{d}$ and assign weight $w_i^2$. The expression remains attached to this sentence.
+
+The probability is defined below. The following display must preserve its fraction, exponent, summation limits and equation number.
+\begin{equation}
+p_i=\frac{\exp(-\|x_i-c_k\|_2^2/\tau)}{\sum_{j=1}^{K}\exp(-\|x_i-c_j\|_2^2/\tau)}.
+\end{equation}
+This sentence after the equation must remain selectable and translatable.
+
+We use the following two stages to compute the output.
+\begin{align}
+h_t&=\sigma(Wx_t+b),\\
+y_t&=\sum_{k=1}^{K}\alpha_k h_{t-k}.
+\end{align}
+The final paragraph remains ordinary text. No nearby prose should be swallowed by a formula crop.
+\end{document}

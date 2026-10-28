@@ -1,0 +1,17 @@
+.data/
+__pycache__/
+*.py[cod]
+*.log
+.venv/
+.build-venv/
+.env
+.env.*
+!.env.example
+build/
+dist/
+build-macos/
+dist-macos/
+*.spec
+*.exe
+*.zip
+.DS_Store
