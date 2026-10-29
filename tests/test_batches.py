@@ -70,6 +70,22 @@ class BatchTests(unittest.TestCase):
         app.request_completion=original;batch.run(app,b['id'],self.config,threading.Event());self.assertEqual(len(self.calls),2)
         self.assertEqual(len(app.load_doc('doc')['proposals']),2)
 
+    def test_language_change_creates_a_distinct_batch_and_resume_keeps_original_language(self):
+        original=self.create()
+        alternate={**self.config,'target':'日语'}
+        task=batch.plan(app.load_doc('doc'))
+        original['status']='cancelled';batch.save(app,original)
+        other=batch.create(app,app.load_doc('doc'),{'fingerprint':task['fingerprint']},alternate)
+        self.assertNotEqual(other['id'],original['id'])
+        self.assertNotEqual(other['items'][0]['request_key'],original['items'][0]['request_key'])
+        seen=[];complete=app.request_completion
+        def capture(messages,config):
+            seen.append(config['target'])
+            return complete(messages,config)
+        app.request_completion=capture
+        batch.run(app,original['id'],alternate,threading.Event())
+        self.assertEqual(seen,['简体中文','简体中文'])
+
     def test_budget_pause_and_restart_accounting(self):
         b=self.create();b['reserved_tokens']=b['input_limit']-1;batch.save(app,b)
         batch.run(app,b['id'],self.config,threading.Event());paused=batch.load(app,b['id'])
