@@ -3,6 +3,7 @@ import json
 import time
 import uuid
 import writing
+import languages
 import context_manager as context
 
 ACTIVE=('queued','running')
@@ -78,16 +79,16 @@ def create(app,doc,data,config):
     with app.connect() as c:
         previous=[json.loads(r['data']) for r in c.execute('SELECT data FROM rewrite_batches WHERE document_id=? ORDER BY updated DESC',(doc['id'],))]
     for prior in previous:
-        if prior['fingerprint']==task['fingerprint'] and prior['model']==config['model'] and prior['base_url']==config['base_url']:
+        if prior['fingerprint']==task['fingerprint'] and prior['model']==config['model'] and prior['base_url']==config['base_url'] and prior.get('source', languages.DEFAULT_SOURCE)==config.get('source', languages.DEFAULT_SOURCE) and prior.get('target', languages.DEFAULT_TARGET)==config.get('target', languages.DEFAULT_TARGET):
             return prior
     if any(prior['status'] in ACTIVE for prior in previous):raise ValueError('该论文已有运行中的批量任务，请先完成或停止。')
     for item in task['items']:
-        key=context.digest([item['key'],config['base_url'],config['model']])
+        key=context.digest([item['key'],config['base_url'],config['model'],config.get('source', languages.DEFAULT_SOURCE),config.get('target', languages.DEFAULT_TARGET)])
         item['request_key']=key
         cached=next((p for p in reversed(doc.get('proposals',[])) if p.get('batch_request_key')==key and p['status']=='proposed'),None)
         if cached:item.update(status='done',proposal_id=cached['id'],reused=True)
     batch={**task,'id':uuid.uuid4().hex,'document_id':doc['id'],'status':'queued','created':time.time(),
-           'model':config['model'],'base_url':config['base_url'],'input_limit':limit,'reserved_tokens':0,
+           'model':config['model'],'base_url':config['base_url'],'source':config.get('source', languages.DEFAULT_SOURCE),'target':config.get('target', languages.DEFAULT_TARGET),'input_limit':limit,'reserved_tokens':0,
            'reported_input_tokens':0,'reported_output_tokens':0,'reported_calls':0,'error':''}
     save(app,batch);return batch
 
@@ -98,6 +99,7 @@ def unchanged(doc,batch):
 
 def run(app,bid,config,cancel):
     batch=load(app,bid);batch['status']='running';save(app,batch)
+    config={**config,'source':batch.get('source', languages.DEFAULT_SOURCE),'target':batch.get('target', languages.DEFAULT_TARGET)}
     try:
         for item in batch['items']:
             if item['status']=='done':continue
